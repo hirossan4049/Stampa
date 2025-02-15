@@ -7,110 +7,45 @@
 
 import SwiftUI
 import MultipeerConnectivity
+import FirebaseAuth
+
 
 struct ContentView: View {
-  @StateObject var mpManager = MultipeerManager()
-  @State private var messageToSend: String = ""
-  @State private var isModalPresented = false
+  @State private var user: User? = nil
+  @State private var isProfileSet: Bool = false
+  @State private var isLoading: Bool = true
   
   var body: some View {
-    NavigationView {
-      VStack {
-        // 接続中のピアをリスト表示
-        List(mpManager.connectedPeers, id: \.self) { peer in
-          Text(peer.displayName)
-        }
-        .listStyle(PlainListStyle())
-        
-        // メッセージ入力フィールド
-        TextField("メッセージを入力", text: $messageToSend)
-          .textFieldStyle(RoundedBorderTextFieldStyle())
-          .padding()
-        
-        // 送信ボタン
-        Button("送信") {
-          mpManager.send(message: messageToSend)
-          messageToSend = ""
-        }
-        .padding()
-        
-        Button("モーダルを表示") {
-          isModalPresented = true
-        }
-        .sheet(isPresented: $isModalPresented) {
-          //          NavigationModalView()
-          MasterSelectView()
-        }
+    Group {
+      if isLoading {
+        // ローディング中はプログレスビューを表示
+        ProgressView("Loading...")
+      } else if user == nil {
+        PhoneAuthView()
+      } else if !isProfileSet {
+        ProfileSettingsView()
+      } else {
+        HomeScreenView()
       }
-      .navigationTitle("Multipeer Chat")
+    }
+    .onAppear(perform: setupAuthListener)
+  }
+  
+  /// FirebaseAuth の状態を監視して、ユーザー情報とプロフィール設定状態を更新する
+  func setupAuthListener() {
+    Auth.auth().addStateDidChangeListener { auth, currentUser in
+      self.user = currentUser
+      if let user = currentUser {
+        // ここでは displayName が設定されているかどうかでプロフィール設定済みか判定
+        self.isProfileSet = !(user.displayName?.isEmpty ?? true)
+      } else {
+        self.isProfileSet = false
+      }
+      self.isLoading = false
     }
   }
 }
 
-struct MasterSelectView: View {
-  var body: some View {
-    
-    NavigationView{
-      VStack {
-        Text("うんこします")
-          .frame(height: 64)
-          .padding()
-        HStack {
-          NavigationLink {
-            InviteView()
-          } label: {
-            Text("集める")
-              .frame(maxWidth: .infinity, maxHeight: 82)
-              .foregroundStyle(.white)
-              .background(.red)
-              .cornerRadius(10)
-              .bold()
-              .contentShape(Rectangle())
-          }
-          Button {
-            
-          } label: {
-            Text("参加する")
-              .frame(maxWidth: .infinity, maxHeight: 82)
-              .foregroundStyle(.white)
-              .background(.orange)
-              .cornerRadius(10)
-              .bold()
-              .contentShape(Rectangle())
-          }
-        }
-        .padding()
-        Spacer()
-      }
-    }
-  }
-}
-
-
-struct InviteView: View {
-  var body: some View {
-    NavigationView{
-      HStack {
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-      }
-    }
-  }
-}
-
-struct JoinView: View {
-  var body: some View {
-    NavigationView{
-      HStack {
-        Text("")
-      }
-    }
-  }
-}
 
 
 #Preview {

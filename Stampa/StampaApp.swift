@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct StampaApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+  
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
     }
+  }
 }
