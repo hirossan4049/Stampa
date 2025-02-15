@@ -19,7 +19,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
   // APNs からのデバイストークン登録時にも、FirebaseAuth に転送
   func application(_ application: UIApplication,
                    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    // 本番環境の場合は .prod を使用してください
+    /// TODO: FIXME
     Auth.auth().setAPNSToken(deviceToken, type: .sandbox)
   }
   

@@ -8,7 +8,7 @@ import Foundation
 import NearbyInteraction
 import SwiftUI
 
-class NearbyInteractionManager: NSObject, ObservableObject, NISessionDelegate {
+final class NearbyInteractionManager: NSObject, ObservableObject, NISessionDelegate {
   private var niSession: NISession?
   
   // 自身の discoveryToken を保持（MultipeerConnectivity 経由で相手に送信）

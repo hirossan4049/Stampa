@@ -5,33 +5,37 @@
 //  Created by a on 2/15/25.
 //
 import SwiftUI
+import FirebaseAuth
 
 
 struct HomeScreenView: View {
-  @StateObject var mpManager = MultipeerManager()
+  @ObservedObject var session = SessionStore.shared
+  
+  //  @StateObject var mpManager = MultipeerManager()
   @State private var messageToSend: String = ""
   @State private var isModalPresented = false
   
   var body: some View {
     NavigationView {
       VStack {
-        // 接続中のピアをリスト表示
-        List(mpManager.connectedPeers, id: \.self) { peer in
-          Text(peer.displayName)
+        AsyncImage(url: session.currentUser?.photoURL) { img in
+          img.image?.resizable()
         }
-        .listStyle(PlainListStyle())
+        .frame(width: 32, height: 32)
+        //        List(mpManager.connectedPeers, id: \.self) { peer in
+        //          Text(peer.displayName)
+        //        }
+        //        .listStyle(PlainListStyle())
         
-        // メッセージ入力フィールド
         TextField("メッセージを入力", text: $messageToSend)
           .textFieldStyle(RoundedBorderTextFieldStyle())
           .padding()
         
-        // 送信ボタン
-        Button("送信") {
-          mpManager.send(message: messageToSend)
-          messageToSend = ""
-        }
-        .padding()
+        //        Button("送信") {
+        //          mpManager.send(message: messageToSend)
+        //          messageToSend = ""
+        //        }
+        //        .padding()
         
         Button("モーダルを表示") {
           isModalPresented = true
@@ -40,6 +44,15 @@ struct HomeScreenView: View {
           //          NavigationModalView()
           MasterSelectView()
         }
+        
+        Button("ろぐあうと") {
+          do {
+            try Auth.auth().signOut()
+          }
+          catch let error as NSError {
+            print(error)
+          }
+        }
       }
       .navigationTitle("Multipeer Chat")
     }
@@ -47,9 +60,10 @@ struct HomeScreenView: View {
 }
 
 struct MasterSelectView: View {
+  @ObservedObject var session = SessionStore.shared
+  
   var body: some View {
-    
-    NavigationView{
+    NavigationView {
       VStack {
         Text("うんこします")
           .frame(height: 64)
@@ -66,8 +80,8 @@ struct MasterSelectView: View {
               .bold()
               .contentShape(Rectangle())
           }
-          Button {
-            
+          NavigationLink {
+            JoinView()
           } label: {
             Text("参加する")
               .frame(maxWidth: .infinity, maxHeight: 82)
@@ -81,31 +95,14 @@ struct MasterSelectView: View {
         .padding()
         Spacer()
       }
-    }
-  }
-}
-
-
-struct InviteView: View {
-  var body: some View {
-    NavigationView{
-      HStack {
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-        Text("name")
-      }
-    }
-  }
-}
-
-struct JoinView: View {
-  var body: some View {
-    NavigationView{
-      HStack {
-        Text("")
+      .onAppear {
+        // Firebase の認証済みユーザーがいる場合、その UID を使って Multipeer のセットアップを実施
+        if let user = session.currentUser {
+          MultipeerManager.shared.setup(userId: user.uid)
+          print("Multipeer setup called with user id: \(user.uid)")
+        } else {
+          print("ユーザーがログインしていないため、Multipeerのセットアップをスキップします。")
+        }
       }
     }
   }

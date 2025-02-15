@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseStorage
+import FirebaseDatabase
 
 struct ProfileSettingsView: View {
   @State private var displayName: String = ""
@@ -88,8 +89,8 @@ struct ProfileSettingsView: View {
   }
   
   /// プロフィール情報の保存処理
-  /// - ユーザーが選択した画像があれば Firebase Storage にアップロードし、取得した URL を使って FirebaseAuth の displayName および photoURL を更新
-  /// - 画像がなければ displayName のみ更新
+  /// - 画像があれば Firebase Storage にアップロードし、取得した URL を使って FirebaseAuth のプロファイル更新後、
+  ///   同じ情報を Realtime Database にも書き込む
   func saveProfile() {
     guard let user = Auth.auth().currentUser else {
       errorMessage = "ユーザーがログインしていません。"
@@ -106,12 +107,27 @@ struct ProfileSettingsView: View {
         changeRequest.photoURL = photoURL
       }
       changeRequest.commitChanges { error in
-        isSaving = false
         if let error = error {
+          isSaving = false
           errorMessage = "プロフィール更新エラー: \(error.localizedDescription)"
           print(errorMessage)
         } else {
-          print("プロフィール更新成功!")
+          print("FirebaseAuth プロフィール更新成功!")
+          // Realtime Database へも更新情報を書き込む
+          let ref = Database.database().reference().child("users").child(user.uid).child("profile")
+          var data: [String: Any] = ["displayName": displayName]
+          if let photoURL = photoURL {
+            data["photoURL"] = photoURL.absoluteString
+          }
+          ref.setValue(data) { error, _ in
+            isSaving = false
+            if let error = error {
+              errorMessage = "Realtime Database 更新エラー: \(error.localizedDescription)"
+              print(errorMessage)
+            } else {
+              print("Realtime Database プロフィール更新成功!")
+            }
+          }
         }
       }
     }

@@ -9,41 +9,24 @@ import SwiftUI
 import MultipeerConnectivity
 import FirebaseAuth
 
-
 struct ContentView: View {
-  @State private var user: User? = nil
-  @State private var isProfileSet: Bool = false
-  @State private var isLoading: Bool = true
+  @ObservedObject var session = SessionStore.shared
   
   var body: some View {
     Group {
-      if isLoading {
-        // ローディング中はプログレスビューを表示
-        ProgressView("Loading...")
-      } else if user == nil {
+      if session.currentUser == nil {
+        // ログインしていない場合は認証画面（電話認証）を表示
         PhoneAuthView()
-      } else if !isProfileSet {
+      } else if !session.isProfileSet {
+        // ログイン済みだがプロフィール設定が未完了の場合
         ProfileSettingsView()
       } else {
+        // それ以外（ログイン済みでプロフィール設定済み）の場合はホーム画面を表示
         HomeScreenView()
       }
     }
-    .onAppear(perform: setupAuthListener)
-  }
-  
-  func setupAuthListener() {
-    Auth.auth().addStateDidChangeListener { auth, currentUser in
-      self.user = currentUser
-      if let user = currentUser {
-        self.isProfileSet = !(user.displayName?.isEmpty ?? true)
-      } else {
-        self.isProfileSet = false
-      }
-      self.isLoading = false
-    }
   }
 }
-
 
 
 #Preview {

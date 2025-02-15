@@ -1,18 +1,25 @@
 import SwiftUI
 import MultipeerConnectivity
 
-class MultipeerManager: NSObject, ObservableObject {
+final class MultipeerManager: NSObject, ObservableObject {
+  static let shared = MultipeerManager() // シングルトンとして共有
+  
   private let serviceType = "stampa"
-  private let myPeerID = MCPeerID(displayName: UIDevice.current.name)
   private var session: MCSession!
   private var advertiser: MCNearbyServiceAdvertiser!
   private var browser: MCNearbyServiceBrowser!
   
   @Published var connectedPeers: [MCPeerID] = []
+  @Published var discoveredPeers: [MCPeerID] = [] // 発見したピアを保持
   
-  override init() {
+  private override init() {
     super.init()
-    
+    // ※ setup(userId:) は、FirebaseAuth のユーザーIDなどを利用して呼び出す
+  }
+  
+  /// ユーザーIDをもとに Multipeer のセットアップを行う
+  func setup(userId: String) {
+    let myPeerID = MCPeerID(displayName: userId)
     session = MCSession(peer: myPeerID, securityIdentity: nil, encryptionPreference: .required)
     session.delegate = self
     
@@ -27,6 +34,13 @@ class MultipeerManager: NSObject, ObservableObject {
     print("Browsing started for service type: \(serviceType)")
   }
   
+  /// 発見したピアに対して招待を送る
+  func invite(peer: MCPeerID) {
+    print("招待送信: \(peer.displayName)")
+    browser.invitePeer(peer, to: session, withContext: nil, timeout: 10)
+  }
+  
+  /// メッセージ送信（参考）
   func send(message: String) {
     guard !session.connectedPeers.isEmpty,
           let data = message.data(using: .utf8) else {
@@ -78,12 +92,11 @@ extension MultipeerManager: MCSessionDelegate {
 
 // MARK: - MCNearbyServiceAdvertiserDelegate
 extension MultipeerManager: MCNearbyServiceAdvertiserDelegate {
-  // 広告開始に失敗した場合のハンドリング
   func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) {
     print("広告の開始に失敗: \(error.localizedDescription)")
   }
   
-  // 招待を受けた際、常に接続する例
+  // 招待を受けた際は、常に接続を承認する（Join 側の処理）
   func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
                   didReceiveInvitationFromPeer peerID: MCPeerID,
                   withContext context: Data?,
@@ -95,19 +108,26 @@ extension MultipeerManager: MCNearbyServiceAdvertiserDelegate {
 
 // MARK: - MCNearbyServiceBrowserDelegate
 extension MultipeerManager: MCNearbyServiceBrowserDelegate {
-  // ブラウジング開始に失敗した場合のハンドリング
+  // ブラウジング開始に失敗した場合
   func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
     print("ブラウジングの開始に失敗: \(error.localizedDescription)")
   }
   
-  // 新しいピアを発見した場合、招待を送信
+  // 新しいピアを発見したとき、リストに追加する
   func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
     print("ピアを発見: \(peerID.displayName)")
-    browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
+    DispatchQueue.main.async {
+      if !self.discoveredPeers.contains(peerID) {
+        self.discoveredPeers.append(peerID)
+      }
+    }
   }
   
-  // ピアが見失われた場合の処理
+  // ピアが見失われた場合、リストから削除する
   func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
     print("ピアを見失いました: \(peerID.displayName)")
+    DispatchQueue.main.async {
+      self.discoveredPeers.removeAll { $0 == peerID }
+    }
   }
 }
