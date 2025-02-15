@@ -428,7 +428,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Stampa/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "写真撮影のためにカメラを使用します。";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "友達同士でスタンプを交換する際に利用します。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "位置情報を記録するために使います。";
 				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = "友達同士でスタンプを交換する際に利用します。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -473,7 +475,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Stampa/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "写真撮影のためにカメラを使用します。";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "友達同士でスタンプを交換する際に利用します。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "位置情報を記録するために使います。";
 				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = "友達同士でスタンプを交換する際に利用します。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

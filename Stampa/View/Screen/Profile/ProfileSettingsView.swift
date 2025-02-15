@@ -17,6 +17,7 @@ struct ProfileSettingsView: View {
   @State private var showingImagePicker: Bool = false
   @State private var isSaving: Bool = false
   @State private var errorMessage: String = ""
+  @Environment(\.dismiss) private var dismiss
   
   var body: some View {
     NavigationView {
@@ -126,6 +127,7 @@ struct ProfileSettingsView: View {
               print(errorMessage)
             } else {
               print("Realtime Database プロフィール更新成功!")
+              dismiss()
             }
           }
         }

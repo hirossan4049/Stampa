@@ -14,6 +14,7 @@ struct PhoneAuthView: View {
   @State private var verificationID: String?
   @State private var showVerificationField = false
   @State private var errorMessage: String = ""
+  @Environment(\.dismiss) private var dismiss
   
   var body: some View {
     VStack(spacing: 20) {
@@ -74,7 +75,7 @@ struct PhoneAuthView: View {
         self.errorMessage = "認証コード送信エラー: \(error.localizedDescription)"
         return
       }
-
+      
       self.verificationID = verificationID
       self.showVerificationField = true
       self.errorMessage = ""
@@ -92,10 +93,10 @@ struct PhoneAuthView: View {
         self.errorMessage = "サインインエラー: \(error.localizedDescription)"
         return
       }
-
+      
       print("サインイン成功: \(authResult?.user.uid ?? "")")
       self.errorMessage = ""
-      /// TODO: 次の画面に遷移
+      dismiss()
     }
   }
 }
