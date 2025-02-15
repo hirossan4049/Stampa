@@ -10,51 +10,42 @@ import FirebaseAuth
 
 struct HomeScreenView: View {
   @ObservedObject var session = SessionStore.shared
-  
-  //  @StateObject var mpManager = MultipeerManager()
   @State private var messageToSend: String = ""
   @State private var isModalPresented = false
   
   var body: some View {
-    NavigationView {
-      VStack {
-        AsyncImage(url: session.currentUser?.photoURL) { img in
-          img.image?.resizable()
-        }
-        .frame(width: 32, height: 32)
-        //        List(mpManager.connectedPeers, id: \.self) { peer in
-        //          Text(peer.displayName)
-        //        }
-        //        .listStyle(PlainListStyle())
-        
-        TextField("メッセージを入力", text: $messageToSend)
-          .textFieldStyle(RoundedBorderTextFieldStyle())
-          .padding()
-        
-        //        Button("送信") {
-        //          mpManager.send(message: messageToSend)
-        //          messageToSend = ""
-        //        }
-        //        .padding()
-        
-        Button("モーダルを表示") {
-          isModalPresented = true
-        }
-        .sheet(isPresented: $isModalPresented) {
-          StampSelectView()
-        }
-        
-        Spacer()
-        Button("ろぐあうと") {
-          do {
-            try Auth.auth().signOut()
+    ZStack{
+      NavigationView {
+        ScrollView {
+          Button("モーダルを表示") {
+            isModalPresented = true
           }
-          catch let error as NSError {
-            print(error)
+          .sheet(isPresented: $isModalPresented) {
+            StampSelectView()
+          }
+          
+          Spacer()
+          Button("ろぐあうと") {
+            do {
+              try Auth.auth().signOut()
+            }
+            catch let error as NSError {
+              print(error)
+            }
           }
         }
+        .frame(maxWidth: .infinity)
+        .overlay(
+          ProfileIcon()
+            .padding(.trailing, 20)
+            .offset(x: 0, y: 0), alignment: .topTrailing)
       }
-      .navigationTitle("Multipeer Chat")
+      
     }
   }
+}
+
+#Preview {
+  HomeScreenView()
+    .background(.red)
 }

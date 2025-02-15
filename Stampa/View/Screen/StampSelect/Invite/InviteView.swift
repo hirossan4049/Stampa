@@ -1,9 +1,3 @@
-//
-//  InviteView.swift
-//  Stampa
-//
-//  Created by a on 2/16/25.
-//
 import SwiftUI
 import MultipeerConnectivity
 
@@ -11,6 +5,7 @@ struct InviteView: View {
   @StateObject private var usersVM = UsersListViewModel()
   @ObservedObject var mpManager = MultipeerManager.shared
   
+  // 右側の項目：接続済みなら「参加中」、未接続なら「接続」ボタンを表示
   func RightItem(peer: MCPeerID) -> some View {
     ZStack {
       if mpManager.connectedPeers.contains(peer) {
@@ -27,43 +22,49 @@ struct InviteView: View {
   }
   
   var body: some View {
-    NavigationView {
+    NavigationStack {
       VStack {
-        List {
-          ForEach(usersVM.users) { profile in
-            HStack {
-              PeerRowView(profile: profile)
-              Spacer()
-              
-//               MCPeerID の displayName をユーザーの uid として利用している前提
-              if let peer = mpManager.discoveredPeers.first(where: { $0.displayName == profile.id }) {
-                RightItem(peer: peer)
-              } else {
-                Text("未発見")
-                  .font(.caption)
-                  .foregroundColor(.gray)
+        // discoveredPeers に該当するユーザーのみフィルタリングして List 表示
+        let filteredUsers = usersVM.users.filter { profile in
+          mpManager.discoveredPeers.contains(where: { $0.displayName == profile.id })
+        }
+        
+        if !filteredUsers.isEmpty {
+          List {
+            ForEach(filteredUsers) { profile in
+              HStack {
+                PeerRowView(profile: profile)
+                Spacer()
+                if let peer = mpManager.discoveredPeers.first(where: { $0.displayName == profile.id }) {
+                  RightItem(peer: peer)
+                }
               }
+              .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
           }
+        } else {
+          Text("表示するユーザーがありません")
+            .foregroundColor(.gray)
         }
         
         NavigationLink {
           EventCaptureView()
+            .presentationDetents([.large])
         } label: {
           Text("次へ")
-            .frame(maxWidth: .infinity, maxHeight: 42)
-            .foregroundStyle(.white)
-            .background(.red)
+            .frame(maxWidth: .infinity, maxHeight: 64)
+            .foregroundColor(.white)
+            .background(Color.red)
             .cornerRadius(10)
             .bold()
-            .contentShape(Rectangle())
+            .padding()
         }
       }
+      .navigationTitle("参加画面")
     }
   }
 }
 
-#Preview{
+#Preview {
   InviteView()
 }

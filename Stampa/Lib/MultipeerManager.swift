@@ -48,8 +48,9 @@ final class MultipeerManager: NSObject, ObservableObject {
   /// Send event data via Multipeer Connectivity.
   func sendEventData(_ eventData: [String: Any]) {
     do {
-      let data = try JSONSerialization.data(withJSONObject: eventData, options: [])
-      try session.send(data, toPeers: session.connectedPeers, with: .reliable)
+      if let data = try? JSONSerialization.data(withJSONObject: eventData, options: []) {
+        try? session.send(data, toPeers: session.connectedPeers, with: .reliable)
+      }
       print("Event data sent via MP")
     } catch {
       print("Error sending event data: \(error.localizedDescription)")

@@ -24,8 +24,9 @@ struct JoinView: View {
         )
         .hidden()
         
-        Text("参加中のピア:")
+        Text("参加中の友達:")
           .font(.headline)
+          .frame(maxWidth: .infinity, alignment: .leading)
           .padding()
         
         List {
@@ -50,7 +51,7 @@ struct JoinView: View {
           }
         }
       }
-      .navigationTitle("参加画面")
+      Text("のスマホをみてね〜")
       .onAppear {
         eventVM.resetAndStart()
       }
@@ -62,4 +63,8 @@ struct JoinView: View {
       }
     }
   }
+}
+
+#Preview {
+  JoinView()
 }
