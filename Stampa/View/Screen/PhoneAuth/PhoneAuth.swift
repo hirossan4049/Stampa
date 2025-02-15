@@ -68,22 +68,19 @@ struct PhoneAuthView: View {
     .padding(.top)
   }
   
-  /// 電話番号に認証コードを送信
   private func sendVerificationCode() {
-    // 入力チェックなど必要に応じて追加してください
     PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil) { verificationID, error in
       if let error = error {
         self.errorMessage = "認証コード送信エラー: \(error.localizedDescription)"
         return
       }
-      // 成功した場合、認証ID を保持し、認証コード入力画面へ遷移
+
       self.verificationID = verificationID
       self.showVerificationField = true
       self.errorMessage = ""
     }
   }
   
-  /// 入力された認証コードでサインイン
   private func verifyCode() {
     guard let verificationID = verificationID else {
       self.errorMessage = "認証IDが取得できていません。"
@@ -95,10 +92,10 @@ struct PhoneAuthView: View {
         self.errorMessage = "サインインエラー: \(error.localizedDescription)"
         return
       }
-      // サインイン成功時の処理
+
       print("サインイン成功: \(authResult?.user.uid ?? "")")
       self.errorMessage = ""
-      // 次の画面に遷移するなど、適切な処理を実施
+      /// TODO: 次の画面に遷移
     }
   }
 }

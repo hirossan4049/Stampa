@@ -20,7 +20,6 @@ struct ProfileSettingsView: View {
   var body: some View {
     NavigationView {
       VStack(spacing: 20) {
-        // プロフィール画像表示エリア
         if let profileImage = profileImage {
           profileImage
             .resizable()
@@ -46,7 +45,6 @@ struct ProfileSettingsView: View {
         }
         .padding(.top, 5)
         
-        // 表示名入力フィールド
         TextField("Display Name", text: $displayName)
           .textFieldStyle(RoundedBorderTextFieldStyle())
           .padding(.horizontal)
@@ -55,14 +53,12 @@ struct ProfileSettingsView: View {
           ProgressView()
         }
         
-        // エラーメッセージ
         if !errorMessage.isEmpty {
           Text(errorMessage)
             .foregroundColor(.red)
             .padding(.horizontal)
         }
         
-        // 保存ボタン
         Button(action: {
           saveProfile()
         }) {
@@ -103,7 +99,6 @@ struct ProfileSettingsView: View {
     isSaving = true
     errorMessage = ""
     
-    // 共通の更新処理
     func updateProfile(with photoURL: URL?) {
       let changeRequest = user.createProfileChangeRequest()
       changeRequest.displayName = displayName
@@ -121,7 +116,6 @@ struct ProfileSettingsView: View {
       }
     }
     
-    // 画像が選択されていれば、Firebase Storage にアップロード
     if let uiImage = selectedUIImage,
        let imageData = uiImage.jpegData(compressionQuality: 0.8) {
       
@@ -144,7 +138,6 @@ struct ProfileSettingsView: View {
         }
       }
     } else {
-      // 画像が選択されていない場合は displayName のみ更新
       updateProfile(with: nil)
     }
   }
