@@ -31,12 +31,10 @@ struct ContentView: View {
     .onAppear(perform: setupAuthListener)
   }
   
-  /// FirebaseAuth の状態を監視して、ユーザー情報とプロフィール設定状態を更新する
   func setupAuthListener() {
     Auth.auth().addStateDidChangeListener { auth, currentUser in
       self.user = currentUser
       if let user = currentUser {
-        // ここでは displayName が設定されているかどうかでプロフィール設定済みか判定
         self.isProfileSet = !(user.displayName?.isEmpty ?? true)
       } else {
         self.isProfileSet = false
