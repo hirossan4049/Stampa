@@ -1,10 +1,3 @@
-//
-//  JoinView.swift
-//  Stampa
-//
-//  Created by a on 2/16/25.
-//
-
 import SwiftUI
 import MultipeerConnectivity
 
@@ -17,6 +10,7 @@ struct JoinView: View {
   var body: some View {
     NavigationView {
       VStack {
+        // Hidden NavigationLink that auto-navigates when an event is available.
         NavigationLink(
           destination: Group {
             if let event = eventVM.events.first {
@@ -57,6 +51,9 @@ struct JoinView: View {
         }
       }
       .navigationTitle("参加画面")
+      .onAppear {
+        eventVM.resetAndStart()
+      }
       .onChange(of: eventVM.events) { newEvents in
         // Automatically navigate when an event is available.
         if !newEvents.isEmpty {
@@ -65,9 +62,4 @@ struct JoinView: View {
       }
     }
   }
-}
-
-
-#Preview {
-  JoinView()
 }

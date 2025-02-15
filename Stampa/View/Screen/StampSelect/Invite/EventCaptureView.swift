@@ -96,7 +96,7 @@ struct EventCaptureView: View {
   }
   
   /// Submits the event by uploading the image, saving event data to Realtime Database,
-  /// sending the data via MP, and then navigating to EventDetailView.
+  /// sending the data via Multipeer, and then navigating to EventDetailView.
   func submitEvent() {
     guard let image = capturedImage,
           let currentLocation = locationManager.lastLocation,
@@ -138,6 +138,7 @@ struct EventCaptureView: View {
         let participants = mpManager.connectedPeers.map { $0.displayName }
         let timestamp = Date().timeIntervalSince1970 * 1000 // milliseconds
         
+        // Create a unique eventID using the auto-generated key or a new UUID.
         let eventRef = Database.database().reference()
           .child("users")
           .child(currentUser.uid)
@@ -152,10 +153,11 @@ struct EventCaptureView: View {
           "latitude": currentLocation.coordinate.latitude,
           "longitude": currentLocation.coordinate.longitude,
           "timestamp": ServerValue.timestamp(),
-          "participants": mpManager.connectedPeers.map { $0.displayName },
+          "participants": participants,
           "isEvent": true
         ]
         
+        // 3. Write event data to Realtime Database (/users/<uid>/events/<autoId>).
         eventRef.setValue(eventData) { error, _ in
           isSubmitting = false
           if let error = error {

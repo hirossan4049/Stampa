@@ -14,14 +14,15 @@ final class MultipeerManager: NSObject, ObservableObject {
   @Published var connectedPeers: [MCPeerID] = []
   @Published var discoveredPeers: [MCPeerID] = []
   
-  // 重複防止用の eventID セット
+  // Set to keep track of processed event IDs for deduplication.
   private var processedEventIDs: Set<String> = []
   
   private override init() {
     super.init()
-    // setup(userId:) は各画面から呼び出してください。
+    // setup(userId:) should be called from your view as needed.
   }
   
+  /// Set up Multipeer Connectivity using the provided userId as the peer's displayName.
   func setup(userId: String) {
     let myPeerID = MCPeerID(displayName: userId)
     session = MCSession(peer: myPeerID, securityIdentity: nil, encryptionPreference: .required)
@@ -38,11 +39,13 @@ final class MultipeerManager: NSObject, ObservableObject {
     print("Browsing started for service type: \(serviceType)")
   }
   
+  /// Invite the specified peer using the Multipeer browser.
   func invite(peer: MCPeerID) {
     browser.invitePeer(peer, to: session, withContext: nil, timeout: 10)
     print("Invitation sent to \(peer.displayName)")
   }
   
+  /// Send event data via Multipeer Connectivity.
   func sendEventData(_ eventData: [String: Any]) {
     do {
       let data = try JSONSerialization.data(withJSONObject: eventData, options: [])
@@ -64,7 +67,7 @@ extension MultipeerManager: MCSessionDelegate {
   }
   
   func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-    // 受信データを JSON に変換
+    // Attempt to decode event data.
     guard let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
           let eventData = jsonObject as? [String: Any],
           let isEvent = eventData["isEvent"] as? Bool, isEvent == true,
@@ -74,7 +77,7 @@ extension MultipeerManager: MCSessionDelegate {
     }
     
     DispatchQueue.main.async {
-      // 重複チェック
+      // Check for duplicates.
       if self.processedEventIDs.contains(eventID) {
         print("Duplicate event \(eventID) received; skipping")
         return
@@ -83,7 +86,7 @@ extension MultipeerManager: MCSessionDelegate {
     }
     
     print("Received event data from \(peerID.displayName)")
-    // 現在のユーザーの /users/<uid>/events に書き込む
+    // Write event data to the current user's /users/<uid>/events node.
     if let currentUser = Auth.auth().currentUser {
       let eventRef = Database.database().reference()
         .child("users")
