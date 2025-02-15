@@ -14,10 +14,28 @@ struct EventCaptureView: View {
   @StateObject private var locationManager = LocationManager()
   @ObservedObject var mpManager = MultipeerManager.shared
   
+  // State for automatic navigation to EventDetailView
+  @State private var navigateToDetail = false
+  @State private var createdEvent: Event? = nil
+  
   var body: some View {
     NavigationView {
       VStack(spacing: 20) {
-        // 撮影した画像を表示（なければ「写真を撮る」ボタンを表示）
+        // Hidden NavigationLink that activates when an event is created.
+        NavigationLink(
+          destination: Group {
+            if let event = createdEvent {
+              EventDetailView(event: event)
+            } else {
+              EmptyView()
+            }
+          },
+          isActive: $navigateToDetail,
+          label: { EmptyView() }
+        )
+        .hidden()
+        
+        // Display captured image or "Take Photo" button.
         if let image = capturedImage {
           Image(uiImage: image)
             .resizable()
@@ -34,7 +52,7 @@ struct EventCaptureView: View {
           .textFieldStyle(RoundedBorderTextFieldStyle())
           .padding(.horizontal)
         
-        // 位置情報の表示（取得中なら ProgressView を表示）
+        // Display location info.
         if let location = locationManager.lastLocation {
           Text("位置: \(location.coordinate.latitude), \(location.coordinate.longitude)")
             .font(.caption)
@@ -43,7 +61,7 @@ struct EventCaptureView: View {
             .font(.caption)
         }
         
-        // 参加者一覧の簡易表示
+        // Display participants info.
         if !mpManager.connectedPeers.isEmpty {
           Text("参加者: \(mpManager.connectedPeers.map { $0.displayName }.joined(separator: ", "))")
             .font(.caption)
@@ -72,12 +90,13 @@ struct EventCaptureView: View {
         ImagePicker(image: $capturedImage, sourceType: .camera)
       }
       .onAppear {
-        locationManager.requestLocation() // 位置情報の取得を開始
+        locationManager.requestLocation() // Start getting location.
       }
     }
   }
   
-  /// イベント（写真、コメント、位置、参加者情報）を Firebase に送信する
+  /// Submits the event by uploading the image, saving event data to Realtime Database,
+  /// sending the data via MP, and then navigating to EventDetailView.
   func submitEvent() {
     guard let image = capturedImage,
           let currentLocation = locationManager.lastLocation,
@@ -89,7 +108,7 @@ struct EventCaptureView: View {
     isSubmitting = true
     errorMessage = ""
     
-    // 1. 画像を Firebase Storage にアップロード
+    // 1. Upload image to Firebase Storage.
     let storageRef = Storage.storage().reference().child("eventPhotos/\(currentUser.uid)/\(UUID().uuidString).jpg")
     guard let imageData = image.jpegData(compressionQuality: 0.8) else {
       errorMessage = "画像変換に失敗しました"
@@ -115,8 +134,19 @@ struct EventCaptureView: View {
           return
         }
         
-        // 2. イベントデータの作成（"isEvent": true を追加）
-        var eventData: [String: Any] = [
+        // 2. Create event data dictionary.
+        let participants = mpManager.connectedPeers.map { $0.displayName }
+        let timestamp = Date().timeIntervalSince1970 * 1000 // milliseconds
+        
+        let eventRef = Database.database().reference()
+          .child("users")
+          .child(currentUser.uid)
+          .child("events")
+          .childByAutoId()
+        let eventID = eventRef.key ?? UUID().uuidString
+        
+        let eventData: [String: Any] = [
+          "eventID": eventID,
           "photoURL": downloadURL.absoluteString,
           "comment": comment,
           "latitude": currentLocation.coordinate.latitude,
@@ -126,23 +156,33 @@ struct EventCaptureView: View {
           "isEvent": true
         ]
         
-        // 3. Realtime Database にイベントデータを書き込み (/users/<uid>/events/<autoId>)
-        let eventRef = Database.database().reference()
-          .child("users")
-          .child(currentUser.uid)
-          .child("events")
-          .childByAutoId()
         eventRef.setValue(eventData) { error, _ in
           isSubmitting = false
           if let error = error {
             errorMessage = "データ保存エラー: \(error.localizedDescription)"
           } else {
             print("イベントデータが正常に保存されました")
-            // 保存成功後、画面をリセット
+            // Create an Event model for navigation.
+            let eventId = eventRef.key ?? UUID().uuidString
+            if let photoURL = URL(string: downloadURL.absoluteString) {
+              let newEvent = Event(
+                id: eventId,
+                photoURL: photoURL,
+                comment: comment,
+                latitude: currentLocation.coordinate.latitude,
+                longitude: currentLocation.coordinate.longitude,
+                timestamp: timestamp,
+                participants: participants
+              )
+              createdEvent = newEvent
+            }
+            // Reset fields.
             capturedImage = nil
             comment = ""
-            // 4. MP 経由でイベントデータを送信（参加者側にも記録してもらう）
+            // 4. Send event data via Multipeer.
             MultipeerManager.shared.sendEventData(eventData)
+            // 5. Navigate to EventDetailView.
+            navigateToDetail = true
           }
         }
       }
