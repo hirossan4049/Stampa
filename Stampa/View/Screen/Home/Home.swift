@@ -33,6 +33,8 @@ struct HomeScreenView: View {
               print(error)
             }
           }
+          MemoryView()
+          BadgeView()
         }
         .frame(maxWidth: .infinity)
         .overlay(

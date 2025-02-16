@@ -35,7 +35,7 @@ struct StampCellView: View {
           .offset(x: 5, y: -5)
       } else {
         Circle()
-          .fill(Color.gray)
+          .fill(Color.gray.opacity(0.1))
           .frame(width: 64, height: 64)
           .overlay(
             Text(String(userID?.prefix(1) ?? ""))
@@ -68,13 +68,21 @@ struct StampScreen: View {
     return rtv
   }
   
+  private var count: (Int) {
+    return Int(events.count/10)+1
+  }
+  
   var body: some View {
     NavigationStack {
       Spacer()
       VStack {
-        if let stamps = latestStamps {
-          LazyVGrid(columns: Array(repeating: GridItem(), count: 5), spacing: 12) {
-            ForEach(0..<stamps.count) { i in
+        VStack{
+          Text("No.\(count)")
+            .frame(maxWidth: .infinity, alignment: .trailing)
+
+        LazyVGrid(columns: Array(repeating: GridItem(), count: 5), spacing: 12) {
+          if let stamps = latestStamps {
+            ForEach(0..<(stamps.count ?? 0)) { i in
               StampCellView(
                 userID: stamps[i].id,
                 count: stamps[i].count,
@@ -85,13 +93,18 @@ struct StampScreen: View {
               /// TODO
               StampCellView(userID: nil, count: nil, profile: nil)
             }
+          } else {
+            ForEach(0..<10) { i in
+              /// TODO
+              StampCellView(userID: nil, count: nil, profile: nil)
+            }
           }
-          .padding(.init(top: 24, leading: 8, bottom: 24, trailing: 8))
-          .background(.gray.opacity(0.3))
-        } else {
-          Text("スタンプがありません")
-            .foregroundColor(.gray)
-        }
+        }}
+        .padding(.init(top: 26, leading: 24, bottom: 32, trailing: 24))
+        .background(.gray.opacity(0.1))
+        .cornerRadius(6)
+        .padding()
+        
         Spacer()
         Button {
           dismiss()
