@@ -46,4 +46,8 @@ final class UsersListViewModel: ObservableObject {
       }
     }
   }
+  
+  func userProfile(for id: String) -> UserProfile? {
+      return users.first(where: { $0.id == id })
+  }
 }

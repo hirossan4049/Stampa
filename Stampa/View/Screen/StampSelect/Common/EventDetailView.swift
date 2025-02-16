@@ -37,8 +37,19 @@ struct EventDetailView: View {
           .font(.caption)
       }
       .padding()
+      
+      NavigationLink {
+        StampScreen()
+      } label: {
+        Text("次へ")
+          .frame(maxWidth: .infinity, maxHeight: 64)
+          .foregroundColor(.white)
+          .background(Color.red)
+          .cornerRadius(10)
+          .bold()
+          .padding()
+      }
     }
-    .navigationTitle("Event Detail")
   }
 }
 

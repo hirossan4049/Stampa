@@ -6,11 +6,11 @@ struct JoinView: View {
   @ObservedObject var mpManager = MultipeerManager.shared
   @StateObject private var eventVM = EventListViewModel()
   @State private var autoNavigate: Bool = false
+  @ObservedObject var session = SessionStore.shared
   
   var body: some View {
     NavigationView {
       VStack {
-        // Hidden NavigationLink that auto-navigates when an event is available.
         NavigationLink(
           destination: Group {
             if let event = eventVM.events.first {
@@ -51,16 +51,21 @@ struct JoinView: View {
           }
         }
       }
-      Text("のスマホをみてね〜")
       .onAppear {
+        if let userId = session.currentUser?.uid {
+          print("USERID!!!")
+          print(userId)
+          mpManager.setup(userId: userId)
+        }
         eventVM.resetAndStart()
       }
-      .onChange(of: eventVM.events) { newEvents in
-        // Automatically navigate when an event is available.
-        if !newEvents.isEmpty {
-          autoNavigate = true
+      Text("のスマホをみてね〜")
+        .onChange(of: eventVM.events) { newEvents in
+          // Automatically navigate when an event is available.
+          if !newEvents.isEmpty {
+            autoNavigate = true
+          }
         }
-      }
     }
   }
 }

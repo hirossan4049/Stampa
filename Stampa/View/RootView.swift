@@ -23,6 +23,7 @@ struct ContentView: View {
       } else {
         // それ以外（ログイン済みでプロフィール設定済み）の場合はホーム画面を表示
         HomeScreenView()
+//        StampScreen()
       }
     }
   }

@@ -4,7 +4,8 @@ import MultipeerConnectivity
 struct InviteView: View {
   @StateObject private var usersVM = UsersListViewModel()
   @ObservedObject var mpManager = MultipeerManager.shared
-  
+  @ObservedObject var session = SessionStore.shared
+
   // 右側の項目：接続済みなら「参加中」、未接続なら「接続」ボタンを表示
   func RightItem(peer: MCPeerID) -> some View {
     ZStack {
@@ -58,6 +59,12 @@ struct InviteView: View {
             .cornerRadius(10)
             .bold()
             .padding()
+        }
+      }
+      .onAppear() {
+        if let userId = session.currentUser?.uid {
+          print(userId)
+          mpManager.setup(userId: userId)
         }
       }
       .navigationTitle("参加画面")

@@ -14,8 +14,11 @@ final class MultipeerManager: NSObject, ObservableObject {
   @Published var connectedPeers: [MCPeerID] = []
   @Published var discoveredPeers: [MCPeerID] = []
   
-  // Set to keep track of processed event IDs for deduplication.
+  // 重複防止用の eventID セット
   private var processedEventIDs: Set<String> = []
+  
+  // ハートビート用タイマー
+  private var heartbeatTimer: Timer?
   
   private override init() {
     super.init()
@@ -37,6 +40,9 @@ final class MultipeerManager: NSObject, ObservableObject {
     browser.delegate = self
     browser.startBrowsingForPeers()
     print("Browsing started for service type: \(serviceType)")
+    
+    // ハートビート開始
+//    startHeartbeat()
   }
   
   /// Invite the specified peer using the Multipeer browser.
