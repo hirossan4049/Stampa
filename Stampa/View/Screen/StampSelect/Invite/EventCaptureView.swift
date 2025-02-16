@@ -14,23 +14,30 @@ struct EventCaptureView: View {
   
   @StateObject private var locationManager = LocationManager()
   @ObservedObject var mpManager = MultipeerManager.shared
+  @EnvironmentObject var usersVM: UsersListViewModel
   
-  // State for automatic navigation to EventDetailView
+  // Navigation用
   @State private var navigateToDetail = false
   @State private var createdEvent: Event? = nil
+  
+  // NavigationLinkのdestinationを computed property で明示
+  private var destinationView: some View {
+    Group {
+      if let event = createdEvent {
+        EventDetailView(event: event)
+          .environmentObject(usersVM)
+      } else {
+        EmptyView()
+      }
+    }
+  }
   
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(spacing: 24) {
-          // Hidden NavigationLink for navigation to EventDetailView.
-          NavigationLink(destination: Group {
-            if let event = createdEvent {
-              EventDetailView(event: event)
-            } else {
-              EmptyView()
-            }
-          }, isActive: $navigateToDetail) {
+          // NavigationLink（destinationView を利用）
+          NavigationLink(destination: destinationView, isActive: $navigateToDetail) {
             EmptyView()
           }
           .hidden()
@@ -60,21 +67,21 @@ struct EventCaptureView: View {
             }
           }
           
-          // Comment TextField
+          // Comment input
           TextField("コメントを入力", text: $comment)
             .padding()
             .background(Color(UIColor.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
           
-          // Location information: 住所があれば表示し、なければ緯度・経度を表示
+          // Location information with reverse geocoding
           Group {
             if let addr = address {
               Text("住所: \(addr)")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            } else if let location = locationManager.lastLocation {
-              Text("位置: \(location.coordinate.latitude, specifier: "%.4f"), \(location.coordinate.longitude, specifier: "%.4f")")
+            } else if let loc = locationManager.lastLocation {
+              Text("位置: \(loc.coordinate.latitude, specifier: "%.4f"), \(loc.coordinate.longitude, specifier: "%.4f")")
                 .font(.caption)
                 .foregroundColor(.secondary)
             } else {
@@ -124,7 +131,7 @@ struct EventCaptureView: View {
       }
       .onAppear {
         locationManager.requestLocation()
-        showingImagePicker = true
+        showingImagePicker = true  // 自動カメラ起動
       }
       .onChange(of: locationManager.lastLocation) { newLocation in
         if let loc = newLocation {
@@ -136,6 +143,7 @@ struct EventCaptureView: View {
         }
       }
     }
+    .environmentObject(usersVM)
   }
   
   func submitEvent() {
