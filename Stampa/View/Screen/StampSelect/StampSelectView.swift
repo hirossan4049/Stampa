@@ -8,7 +8,7 @@ struct StampSelectView: View {
   var body: some View {
     NavigationStack {
       VStack {
-        Text("うんこします")
+        Text("Stampa!する")
           .frame(maxWidth: .infinity, maxHeight: 32, alignment: .leading)
           .padding()
         HStack {
