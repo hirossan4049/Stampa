@@ -10,6 +10,7 @@ struct EventCaptureView: View {
   @State private var showingImagePicker = false
   @State private var isSubmitting = false
   @State private var errorMessage: String = ""
+  @State private var address: String? = nil  // 逆ジオコーディング結果
   
   @StateObject private var locationManager = LocationManager()
   @ObservedObject var mpManager = MultipeerManager.shared
@@ -19,84 +20,124 @@ struct EventCaptureView: View {
   @State private var createdEvent: Event? = nil
   
   var body: some View {
-    NavigationView {
-      VStack(spacing: 20) {
-        // Hidden NavigationLink that activates when an event is created.
-        NavigationLink(
-          destination: Group {
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: 24) {
+          // Hidden NavigationLink for navigation to EventDetailView.
+          NavigationLink(destination: Group {
             if let event = createdEvent {
               EventDetailView(event: event)
             } else {
               EmptyView()
             }
-          },
-          isActive: $navigateToDetail,
-          label: { EmptyView() }
-        )
-        .hidden()
-        
-        // Display captured image or "Take Photo" button.
-        if let image = capturedImage {
-          Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .frame(height: 300)
-        } else {
-          Button("写真を撮る") {
-            showingImagePicker = true
+          }, isActive: $navigateToDetail) {
+            EmptyView()
           }
-          .font(.headline)
-        }
-        
-        TextField("コメントを入力", text: $comment)
-          .textFieldStyle(RoundedBorderTextFieldStyle())
-          .padding(.horizontal)
-        
-        // Display location info.
-        if let location = locationManager.lastLocation {
-          Text("位置: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-            .font(.caption)
-        } else {
-          Text("位置情報を取得中...")
-            .font(.caption)
-        }
-        
-        // Display participants info.
-        if !mpManager.connectedPeers.isEmpty {
-          Text("参加者: \(mpManager.connectedPeers.map { $0.displayName }.joined(separator: ", "))")
-            .font(.caption)
-        }
-        
-        if isSubmitting {
-          ProgressView("送信中...")
-        }
-        
-        if !errorMessage.isEmpty {
-          Text(errorMessage)
-            .foregroundColor(.red)
+          .hidden()
+          
+          // Captured image or "Take Photo" button
+          Group {
+            if let image = capturedImage {
+              Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 300)
+                .cornerRadius(12)
+                .shadow(radius: 5)
+            } else {
+              Button {
+                showingImagePicker = true
+              } label: {
+                Label("写真を撮る", systemImage: "camera.fill")
+                  .font(.headline)
+                  .frame(maxWidth: .infinity)
+                  .padding()
+                  .background(Color.blue.opacity(0.8))
+                  .foregroundColor(.white)
+                  .cornerRadius(12)
+              }
+              .padding(.horizontal)
+            }
+          }
+          
+          // Comment TextField
+          TextField("コメントを入力", text: $comment)
+            .padding()
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(10)
             .padding(.horizontal)
+          
+          // Location information: 住所があれば表示し、なければ緯度・経度を表示
+          Group {
+            if let addr = address {
+              Text("住所: \(addr)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            } else if let location = locationManager.lastLocation {
+              Text("位置: \(location.coordinate.latitude, specifier: "%.4f"), \(location.coordinate.longitude, specifier: "%.4f")")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            } else {
+              Text("位置情報を取得中…")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+          
+          // Participants information
+          if !mpManager.connectedPeers.isEmpty {
+            Text("参加者: \(mpManager.connectedPeers.map { $0.displayName }.joined(separator: ", "))")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+          
+          // Error message
+          if !errorMessage.isEmpty {
+            Text(errorMessage)
+              .font(.body)
+              .foregroundColor(.red)
+              .padding(.horizontal)
+          }
+          
+          // Submit button
+          Button {
+            submitEvent()
+          } label: {
+            Text("送信")
+              .font(.headline)
+              .bold()
+              .frame(maxWidth: .infinity, minHeight: 64)
+              .background(isSubmitting ? Color.gray : Color.red)
+              .foregroundColor(.white)
+              .cornerRadius(12)
+              .padding(.horizontal)
+          }
+          .disabled(isSubmitting || capturedImage == nil)
+          
+          Spacer()
         }
-        
-        Button("送信") {
-          submitEvent()
-        }
-        .disabled(isSubmitting || capturedImage == nil)
-        .padding()
-        
-        Spacer()
+        .padding(.vertical)
       }
       .navigationTitle("イベント記録")
       .sheet(isPresented: $showingImagePicker) {
         ImagePicker(image: $capturedImage, sourceType: .camera)
       }
       .onAppear {
-        locationManager.requestLocation() // Start getting location.
+        locationManager.requestLocation()
+        showingImagePicker = true
+      }
+      .onChange(of: locationManager.lastLocation) { newLocation in
+        if let loc = newLocation {
+          reverseGeocode(location: loc) { fetchedAddress in
+            DispatchQueue.main.async {
+              self.address = fetchedAddress
+            }
+          }
+        }
       }
     }
   }
   
-  /// Submits the event by uploading the image, saving event data to Realtime Database,
-  /// sending the data via Multipeer, and then navigating to EventDetailView.
   func submitEvent() {
     guard let image = capturedImage,
           let currentLocation = locationManager.lastLocation,
@@ -108,7 +149,6 @@ struct EventCaptureView: View {
     isSubmitting = true
     errorMessage = ""
     
-    // 1. Upload image to Firebase Storage.
     let storageRef = Storage.storage().reference().child("eventPhotos/\(currentUser.uid)/\(UUID().uuidString).jpg")
     guard let imageData = image.jpegData(compressionQuality: 0.8) else {
       errorMessage = "画像変換に失敗しました"
@@ -134,11 +174,9 @@ struct EventCaptureView: View {
           return
         }
         
-        // 2. Create event data dictionary.
         let participants = mpManager.connectedPeers.map { $0.displayName }
         let timestamp = Date().timeIntervalSince1970 * 1000 // milliseconds
         
-        // Create a unique eventID using the auto-generated key or a new UUID.
         let eventRef = Database.database().reference()
           .child("users")
           .child(currentUser.uid)
@@ -157,14 +195,12 @@ struct EventCaptureView: View {
           "isEvent": true
         ]
         
-        // 3. Write event data to Realtime Database (/users/<uid>/events/<autoId>).
         eventRef.setValue(eventData) { error, _ in
           isSubmitting = false
           if let error = error {
             errorMessage = "データ保存エラー: \(error.localizedDescription)"
           } else {
             print("イベントデータが正常に保存されました")
-            // Create an Event model for navigation.
             let eventId = eventRef.key ?? UUID().uuidString
             if let photoURL = URL(string: downloadURL.absoluteString) {
               let newEvent = Event(
@@ -178,12 +214,9 @@ struct EventCaptureView: View {
               )
               createdEvent = newEvent
             }
-            // Reset fields.
             capturedImage = nil
             comment = ""
-            // 4. Send event data via Multipeer.
             MultipeerManager.shared.sendEventData(eventData)
-            // 5. Navigate to EventDetailView.
             navigateToDetail = true
           }
         }

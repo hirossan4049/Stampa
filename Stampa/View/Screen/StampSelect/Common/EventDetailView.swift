@@ -36,6 +36,7 @@ struct EventDetailView: View {
         }
         Text("\(event.comment)")
           .font(.headline)
+          .padding()
         
         Group {
           if let address = address {
@@ -45,11 +46,12 @@ struct EventDetailView: View {
             Text("\(event.latitude, specifier: "%.4f"), \(event.longitude, specifier: "%.4f")")
               .font(.subheadline)
           }
-        }
+        }.padding()
         
       }
       Text("\(Date(timeIntervalSince1970: event.timestamp / 1000), formatter: dateFormatter)")
         .font(.caption)
+        .padding()
       
       // 参加者のアイコンを水平スクロールで表示
       if !event.participants.isEmpty {
