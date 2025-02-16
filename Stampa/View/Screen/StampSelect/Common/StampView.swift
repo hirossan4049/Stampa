@@ -53,20 +53,24 @@ struct StampScreen: View {
   @StateObject private var usersVM = UsersListViewModel()
   
   private var latestStamps: [(id: String, count: Int)]? {
-    let sortedEvents = events.sorted { $0.timestamp > $1.timestamp }
-    var rtv: [(id: String, count: Int)] = []
-    if sortedEvents.count == 0 {return nil}
-    for i in 0...(sortedEvents.count < 10 ? sortedEvents.count : 9-sortedEvents.count%10) {
-      let event = sortedEvents[i]
-      guard let participantID = event.participants.first else { continue }
+      let sortedEvents = events.sorted { $0.timestamp > $1.timestamp }
+      var rtv: [(id: String, count: Int)] = []
+      if sortedEvents.isEmpty { return nil }
       
-      let count = sortedEvents.filter{$0.timestamp >= event.timestamp}.reduce(0) { partialResult, event in
-        event.participants.contains(participantID) ? partialResult + 1 : partialResult
+      let limit = min(10, sortedEvents.count)
+      for i in 0..<limit {
+          let event = sortedEvents[i]
+          guard let participantID = event.participants.first else { continue }
+          
+          let count = sortedEvents.filter { $0.timestamp >= event.timestamp }
+                                   .reduce(0) { partialResult, event in
+              event.participants.contains(participantID) ? partialResult + 1 : partialResult
+          }
+          rtv.append((id: participantID, count: count))
       }
-      rtv.append((id: participantID, count: count))
-    }
-    return rtv
+      return rtv
   }
+
   
   private var count: (Int) {
     return Int(events.count/10)+1
